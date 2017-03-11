@@ -20,8 +20,5 @@ If you use zsh shell, you can use completion (need to install `_erlenv` into you
 ## Usage
 Please check `erlenv help` command.
 
-## Comment
-Now Go installing path is `$HOME/.erlenv` in `erlenv`.
-
 ## License
 MIT License.
