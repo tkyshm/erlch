@@ -1,0 +1,30 @@
+#!/bin/bash
+
+_erlenv() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    COMPREPLY=( $(compgen -W "help install list use" -- $cur) )
+
+    if [[ $COMP_CWORD -eq 2 ]] ; then
+        case ${COMP_WORDS[1]} in
+            use|uninstall)
+                local versions=`ls $HOME/.erlenv/versions`
+                COMPREPLY=( $(compgen -W "$versions" -- $cur) )
+                ;;
+            rm-cache)
+                local versions=`ls $HOME/.erlenv/cache`
+                COMPREPLY=( $(compgen -W "$versions" -- $cur) )
+                ;;
+            install|download)
+                if [[ -f "$HOME/.erlenv/.version_list" ]] ; then
+                    local versions=`ls $HOME/.erlenv/.version_list`
+                    COMPREPLY=( $(compgen -W "$versions" -- $cur) )
+                fi
+                ;;
+            help)
+                COMPREPLY=( $(compgen -W "install list use fetch uninstall" -- $cur) )
+                ;;
+        esac
+    fi
+}
+
+complete -F _erlenv erlenv

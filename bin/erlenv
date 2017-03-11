@@ -1,0 +1,238 @@
+#!/bin/bash
+set -e
+
+WITH_ERL_DOCS=y # default is yes
+
+erlenv_path="$HOME/.erlenv"
+erlang_url="http://erlang.org/download"
+versions_dir="$erlenv_path/versions"
+cache_dir="$erlenv_path/cache"
+versions_list=$erlenv_path/.version_list
+erlenv_bin=$erlenv_path/bin
+
+# Colors
+red="\e[31m"
+gre="\e[32m"
+yel="\e[33m"
+blu="\e[34m"
+pup="\e[35m"
+nei="\e[36m"
+de="\e[39m"
+
+function __strip_version_name(){
+    sed 's/OTP[-_]//' <<< ${1}
+}
+
+function __filename() {
+    echo "otp_src_${1}.tar.gz"
+}
+
+function __untar_dir() {
+    echo "otp_src_${1}"
+}
+
+function erlenv() {
+    declare -a modes
+    local modes=($@)
+
+    usage() {
+        echo " erlenv command list:"
+        echo ""
+        echo "        help: display how to use erlenv command."
+        echo "         use: switches your erlang version."
+        echo "       fetch: caches erlang versions for completions."
+        echo "        list: lists your erlang versions."
+        echo "    download: download erlang source and cache."
+        echo "     install: install erlang."
+        echo "    rm-cache: delete cache."
+        echo "   uninstall: uninstall your installed erlang."
+        echo ""
+    }
+
+    help() {
+        case $1 in
+            use|uninstall)
+                echo -e "Usage: erlenv $1 <installed_erlang_version>"
+                echo ""
+                echo -e " <installed_erlang_version> is the version of your installed erlang at $versions_dir."
+                echo -e " If you check your erlang versions, execute 'erlenv list'."
+                echo ""
+                ;;
+            fetch)
+                echo -e "Usage: erlenv fetch"
+                echo -e " fetchs available erlang verions and caches to $versions_list."
+                ;;
+            list)
+                echo -e "Usage: erlenv list"
+                ;;
+            install)
+                echo -e "Usage: erlenv install <version>"
+                echo ""
+                echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
+                echo ""
+                ;;
+            rm-cache)
+                echo -e "Usage: erlenv download <version>"
+                echo ""
+                echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
+                echo ""
+                ;;
+            rm-cache)
+                echo -e "Usage: erlenv rm-cache <version>"
+                echo ""
+                echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
+                echo ""
+                ;;
+            *)
+                usage
+                ;;
+        esac
+    }
+
+    fetch() {
+        local list=`git ls-remote -t https://github.com/erlang/otp | awk -F/ '{ print $NF }' | grep -v '{}' | grep OTP`
+        mkdir -p $erlenv_path
+        echo "$list"
+        echo "$list" > $versions_list
+    }
+
+    install(){
+        mkdir -p $versions_dir
+        local version=$(__strip_version_name ${1})
+        local filename=$(__filename ${version})
+        local configure_opts=${@:2}
+        local install_dir=$versions_dir/$version
+        local untar_dir=$cache_dir/$(__untar_dir $version)
+
+        # if not exists cache, download source
+        if [[ ! -f $cache_dir/$filename ]] ; then
+            echo -e "${blu}Start download source because not find cache file${de}"
+            download ${1}
+        fi
+
+        # setting configure options
+        if [[ ! -f $erlenv_path/configure_opts ]] ; then
+            touch $erlenv_path/configure_opts
+        fi
+        local custom_configure_opts=$(cat $erlenv_path/configure_opts || :)
+
+        ## user setting from file if not specified configure options
+        if [[ $configure_opts = "" ]] ; then
+            configure_opts=$custom_configure_opts
+        fi
+        echo "configure options: $configure_opts"
+
+        # build
+        cd $cache_dir
+        echo -e "untar from cache ($cache_dir/$filename)"
+        tar zxf ${filename}
+
+        cd $untar_dir
+        ./otp_build autoconf
+        ./configure --prefix ${install_dir} ${configure_opts}
+        make
+        make install
+
+        # make docs
+        if [[ $WITH_ERL_DOCS =~ y|yes ]] ; then
+            make docs
+            make install-docs
+        fi
+        rm -rf $untar_dir
+    }
+
+    download() {
+        mkdir -p $cache_dir
+        local version=$(__strip_version_name $1)
+        local filename=$(__filename ${version})
+        local download_url=$erlang_url/$filename
+        echo -e "${gre}Starts to download $download_url ($cache_dir/$filename)${de}"
+        if [[ $version != "" ]] ; then
+            if [[ -f "$cache_dir/$filename" ]] ; then
+                echo -e "Already cached ${version} at $cache_dir/$filename"
+            else
+                cd $cache_dir
+                if [[ ! -f "${filename}" ]] ; then
+                    curl -O -o -L $download_url
+                fi
+                echo -e "${gre}Finished downlowd ${version}.${de}"
+            fi
+        else
+            usage "install"
+        fi
+    }
+
+    rm-cache() {
+        if [[ $# -eq 1 ]] ; then
+            local target_cache=$cache_dir/$1
+
+            if [[ -f "$target_cache" ]] ; then
+                echo -e "${gre}Delete cache ${version}. ($target_cache)${de}"
+                rm -rf $target_cache
+            else
+                echo -e "${pup}Cache does not exists ${version}. ($target_cache)${de}"
+            fi
+        else
+            help "rm-cache"
+            return
+        fi
+    }
+
+    uninstall() {
+        if [[ $# -eq 1 ]] ; then
+            local version=$1
+            if [[ -d "${versions_dir}/${version}" ]] ; then
+                echo -e "${gre}Delete ${version}. ($versions_dir/$version)${de}"
+                rm -rf $versions_dir/$version
+            else
+                echo -e "${pup}Does not exists ${version}. ($versions_dir/$version)${de}"
+            fi
+        else
+            help "uninstall"
+            return
+        fi
+    }
+
+    list() {
+        echo `ls $versions_dir`
+    }
+
+    use() {
+        if [[ $# -ne 1 ]] ; then
+            echo -e "$red[ERROR] Wrong argument: $1${de}"
+            help "use"
+            return
+        fi
+
+        local version=$1
+        if [[ -d "$versions_dir/${version}" ]] ; then
+            rm -f $erlenv_path/bin
+            ln -s $versions_dir/$version/bin $erlenv_path/bin
+            echo -e "${gre}switched erlang version $version."
+        else
+            echo -e "$red[ERROR] Does not exist version ($HOME/.erlenv): ${version}${de}"
+            echo -e "your installed erlang versions:"
+            list
+        fi
+    }
+
+    case ${modes[0]} in
+        install)
+            ${modes[0]} ${modes[1]} ${modes[@]:2}
+            ;;
+        help|download|use|uninstall|rm-cache)
+            ${modes[0]} ${modes[1]}
+            return
+            ;;
+        list|fetch)
+            ${modes[0]}
+            return
+            ;;
+        *)
+            usage
+            return
+            ;;
+    esac
+}
+
+erlenv $@
