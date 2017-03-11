@@ -165,12 +165,16 @@ function erlenv() {
     rm-cache() {
         if [[ $# -eq 1 ]] ; then
             local target_cache=$cache_dir/$1
+            local target_cache_untar=$(sed 's/.tar.gz//' <<< $target_cache)
 
             if [[ -f "$target_cache" ]] ; then
                 echo -e "${gre}Delete cache ${version}. ($target_cache)${de}"
                 rm -rf $target_cache
-            else
-                echo -e "${pup}Cache does not exists ${version}. ($target_cache)${de}"
+            fi
+
+            if [[ -d "$target_cache_untar" ]] ; then
+                echo -e "${gre}Delete cache ${version}. ($target_cache)${de}"
+                rm -rf $target_cache
             fi
         else
             help "rm-cache"
