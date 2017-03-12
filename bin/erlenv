@@ -73,7 +73,7 @@ function erlenv() {
                 echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
                 echo -e " [configure options] is used with when to exec ./configure (e.g. --with-debug)."
                 echo -e ""
-                echo -e " Note: enable to set user's setting for default configure options at '$$HOME/.erlenv/configure_opts'."
+                echo -e " Note: enable to set user's setting for default configure options at '$HOME/.erlenv/configure_opts'."
                 echo -e "       You can apply only to insert [configure options] values 'configure_opts' at one line."
                 echo ""
                 ;;
