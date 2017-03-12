@@ -60,15 +60,21 @@ function erlenv() {
                 ;;
             fetch)
                 echo -e "Usage: erlenv fetch"
+                echo ""
                 echo -e " fetchs available erlang verions and caches to $versions_list."
+                echo ""
                 ;;
             list)
                 echo -e "Usage: erlenv list"
                 ;;
             install)
-                echo -e "Usage: erlenv install <version>"
+                echo -e "Usage: erlenv install <version> [configure options]"
                 echo ""
                 echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
+                echo -e " [configure options] is used with when to exec ./configure (e.g. --with-debug)."
+                echo -e ""
+                echo -e " Note: enable to set user's setting for default configure options at '$$HOME/.erlenv/configure_opts'."
+                echo -e "       You can apply only to insert [configure options] values 'configure_opts' at one line."
                 echo ""
                 ;;
             rm-cache)
