@@ -77,7 +77,7 @@ function erlenv() {
                 echo -e "       You can apply only to insert [configure options] values 'configure_opts' at one line."
                 echo ""
                 ;;
-            rm-cache)
+            download)
                 echo -e "Usage: erlenv download <version>"
                 echo ""
                 echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
