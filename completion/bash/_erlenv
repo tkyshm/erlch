@@ -21,7 +21,7 @@ _erlenv() {
                 fi
                 ;;
             help)
-                COMPREPLY=( $(compgen -W "install list use fetch uninstall" -- $cur) )
+                COMPREPLY=( $(compgen -W "download install list use fetch uninstall rm-cache" -- $cur) )
                 ;;
         esac
     fi

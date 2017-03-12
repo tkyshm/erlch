@@ -26,7 +26,7 @@ _erlenv() {
                 fi
                 ;;
             help)
-                _values "command list" list install use fetch uninstall
+                _values "command list" download list install use fetch uninstall rm-cache
                 ;;
         esac
     fi
