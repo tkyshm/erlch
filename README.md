@@ -1,24 +1,41 @@
-# erlenv
+# erlch
 
 ## Install
 
-erlenv install to /usr/local/bin:
+erlch install to /usr/local/bin:
 ```
-$ git clone https://github.com/tkyshm/erlenv.git
-$ install -m 0755 bin/erlenv /usr/local/bin
+$ git clone https://github.com/tkyshm/erlch.git
+$ install -m 0755 bin/erlch /usr/local/bin
 ```
 
 setting .bashrc or .zshrc:
 ```
-export ERLENV_BIN=$HOME/.erlenv/bin
-export PATH=$PATH:$ERLENV_BIN
+export ERLCH_BIN=$HOME/.erlch/bin
+export PATH=$PATH:$ERLCH_BIN
 ```
 
-If you use zsh shell, you can use completion (need to install `_erlenv` into your zsh competions dir).
+If you use zsh shell, you can use completion (need to install `_erlch` into your zsh competions dir).
 
 
 ## Usage
-Please check `erlenv help` command.
+Please check `erlch help` command.
+
+## Example `configure_opts`
+
+- `$HOME/.erlch/configure_opts`
+```
+--enable-dynamic-ssl-lib
+--enable-hipe
+--enable-kernel-poll
+--enable-shared-zlib
+--enable-smp-support
+--enable-threads
+--enable-vm-probes
+--disable-sctp
+--with-wx
+--without-javac
+--without-odbc
+```
 
 ## License
 MIT License.
