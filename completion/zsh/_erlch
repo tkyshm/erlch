@@ -1,6 +1,6 @@
-#compdef erlenv
+#compdef erlch
 
-_erlenv() {
+_erlch() {
     local -a cmds
     if (( CURRENT == 2 )) ; then
         _values 'mode' \
@@ -15,14 +15,14 @@ _erlenv() {
     else
         case $words[CURRENT-1] in
             use|uninstall)
-                _values "installed your erlang versions" `ls $HOME/.erlenv/versions`
+                _values "installed your erlang versions" `ls $HOME/.erlch/versions`
                 ;;
             rm-cache)
-                _values "delete cache your erlang source" `ls $HOME/.erlenv/cache`
+                _values "delete cache your erlang source" `ls $HOME/.erlch/cache`
                 ;;
             install|download)
-                if [[ -f "$HOME/.erlenv/.version_list" ]] ; then
-                    _values "available versions" `cat $HOME/.erlenv/.version_list`
+                if [[ -f "$HOME/.erlch/.version_list" ]] ; then
+                    _values "available versions" `cat $HOME/.erlch/.version_list`
                 fi
                 ;;
             help)
@@ -32,4 +32,4 @@ _erlenv() {
     fi
 }
 
-compdef _erlenv erlenv
+compdef _erlch erlch

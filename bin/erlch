@@ -3,12 +3,13 @@ set -e
 
 WITH_ERL_DOCS=y # default is yes
 
-erlenv_path="$HOME/.erlenv"
-erlang_url="http://erlang.org/download"
-versions_dir="$erlenv_path/versions"
-cache_dir="$erlenv_path/cache"
-versions_list=$erlenv_path/.version_list
-erlenv_bin=$erlenv_path/bin
+erlch_path=$HOME/.erlch
+#erlang_url="http://erlang.org/download"
+erlang_url="https://github.com/erlang/otp/archive/"
+versions_dir="$erlch_path/versions"
+cache_dir="$erlch_path/cache"
+versions_list=$erlch_path/.version_list
+erlch_bin=$erlch_path/bin
 
 # Colors
 red="\e[31m"
@@ -19,26 +20,18 @@ pup="\e[35m"
 nei="\e[36m"
 de="\e[39m"
 
-function __strip_version_name(){
+function __convert_number_version(){
     sed 's/OTP[-_]//' <<< ${1}
 }
 
-function __filename() {
-    echo "otp_src_${1}.tar.gz"
-}
-
-function __untar_dir() {
-    echo "otp_src_${1}"
-}
-
-function erlenv() {
+function erlch() {
     declare -a modes
     local modes=($@)
 
     usage() {
-        echo " erlenv command list:"
+        echo " erlch command list:"
         echo ""
-        echo "        help: display how to use erlenv command."
+        echo "        help: display how to use erlch command."
         echo "         use: switches your erlang version."
         echo "       fetch: caches erlang versions for completions."
         echo "        list: lists your erlang versions."
@@ -52,39 +45,39 @@ function erlenv() {
     help() {
         case $1 in
             use|uninstall)
-                echo -e "Usage: erlenv $1 <installed_erlang_version>"
+                echo -e "Usage: erlch $1 <installed_erlang_version>"
                 echo ""
                 echo -e " <installed_erlang_version> is the version of your installed erlang at $versions_dir."
-                echo -e " If you check your erlang versions, execute 'erlenv list'."
+                echo -e " If you check your erlang versions, execute 'erlch list'."
                 echo ""
                 ;;
             fetch)
-                echo -e "Usage: erlenv fetch"
+                echo -e "Usage: erlch fetch"
                 echo ""
                 echo -e " fetchs available erlang verions and caches to $versions_list."
                 echo ""
                 ;;
             list)
-                echo -e "Usage: erlenv list"
+                echo -e "Usage: erlch list"
                 ;;
             install)
-                echo -e "Usage: erlenv install <version> [configure options]"
+                echo -e "Usage: erlch install <version> [configure options]"
                 echo ""
                 echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
                 echo -e " [configure options] is used with when to exec ./configure (e.g. --with-debug)."
                 echo -e ""
-                echo -e " Note: enable to set user's setting for default configure options at '$HOME/.erlenv/configure_opts'."
-                echo -e "       You can apply only to insert [configure options] values 'configure_opts' at one line."
+                echo -e " If you want to prepare preset for configure options, please append options to"
+                echo -e " '$HOME/.erlch/configure_opts'."
                 echo ""
                 ;;
             download)
-                echo -e "Usage: erlenv download <version>"
+                echo -e "Usage: erlch download <version>"
                 echo ""
                 echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
                 echo ""
                 ;;
             rm-cache)
-                echo -e "Usage: erlenv rm-cache <version>"
+                echo -e "Usage: erlch rm-cache <version>"
                 echo ""
                 echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
                 echo ""
@@ -97,18 +90,19 @@ function erlenv() {
 
     fetch() {
         local list=`git ls-remote -t https://github.com/erlang/otp | awk -F/ '{ print $NF }' | grep -v '{}' | grep OTP`
-        mkdir -p $erlenv_path
+        mkdir -p $erlch_path
         echo "$list"
         echo "$list" > $versions_list
     }
 
     install(){
         mkdir -p $versions_dir
-        local version=$(__strip_version_name ${1})
-        local filename=$(__filename ${version})
+        local version_name=$1
+        local version=$(__convert_number_version $1)
+        local filename=${version_name}.tar.gz
         local configure_opts=${@:2}
         local install_dir=$versions_dir/$version
-        local untar_dir=$cache_dir/$(__untar_dir $version)
+        local untar_dir=/tmp/erlch-cache
 
         # if not exists cache, download source
         if [[ ! -f $cache_dir/$filename ]] ; then
@@ -117,10 +111,10 @@ function erlenv() {
         fi
 
         # setting configure options
-        if [[ ! -f $erlenv_path/configure_opts ]] ; then
-            touch $erlenv_path/configure_opts
+        if [[ ! -f $erlch_path/configure_opts ]] ; then
+            touch $erlch_path/configure_opts
         fi
-        local custom_configure_opts=$(cat $erlenv_path/configure_opts || :)
+        local custom_configure_opts=$(cat $erlch_path/configure_opts | perl -pE 's{\n}{ }g' || :)
 
         ## user setting from file if not specified configure options
         if [[ $configure_opts = "" ]] ; then
@@ -131,9 +125,10 @@ function erlenv() {
         # build
         cd $cache_dir
         echo -e "untar from cache ($cache_dir/$filename)"
-        tar zxf ${filename}
+        mkdir -p $untar_dir
+        tar zxf ${filename} -C $untar_dir
 
-        cd $untar_dir
+        cd $untar_dir/$(ls $untar_dir)
         ./otp_build autoconf
         ./configure --prefix ${install_dir} ${configure_opts}
         make -j$(getconf _NPROCESSORS_ONLN)
@@ -144,13 +139,15 @@ function erlenv() {
             make docs
             make install-docs
         fi
+        cd -
         rm -rf $untar_dir
     }
 
     download() {
         mkdir -p $cache_dir
-        local version=$(__strip_version_name $1)
-        local filename=$(__filename ${version})
+        local version_name=$1
+        local version=$(__convert_number_version $1)
+        local filename=${version_name}.tar.gz
         local download_url=$erlang_url/$filename
         echo -e "${gre}Starts to download $download_url ($cache_dir/$filename)${de}"
         if [[ $version != "" ]] ; then
@@ -159,7 +156,7 @@ function erlenv() {
             else
                 cd $cache_dir
                 if [[ ! -f "${filename}" ]] ; then
-                    curl -O -o -L $download_url
+                    curl -O -L $download_url
                 fi
                 echo -e "${gre}Finished downlowd ${version}.${de}"
             fi
@@ -204,6 +201,10 @@ function erlenv() {
     }
 
     list() {
+        echo "- installed versions -"
+        if [ ! -e $versions_dir ] ; then
+            return
+        fi
         echo `ls $versions_dir`
     }
 
@@ -216,12 +217,11 @@ function erlenv() {
 
         local version=$1
         if [[ -d "$versions_dir/${version}" ]] ; then
-            rm -f $erlenv_path/bin
-            ln -s $versions_dir/$version/bin $erlenv_path/bin
+            rm -f $erlch_path/bin
+            ln -s $versions_dir/$version/bin $erlch_path/bin
             echo -e "${gre}switched erlang version $version."
         else
-            echo -e "$red[ERROR] Does not exist version ($HOME/.erlenv): ${version}${de}"
-            echo -e "your installed erlang versions:"
+            echo -e "$red[ERROR] Does not exist version ($HOME/.erlch): ${version}${de}"
             list
         fi
     }
@@ -245,4 +245,4 @@ function erlenv() {
     esac
 }
 
-erlenv $@
+erlch $@

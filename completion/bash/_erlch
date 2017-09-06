@@ -1,22 +1,22 @@
 #!/bin/bash
 
-_erlenv() {
+_erlch() {
     local cur=${COMP_WORDS[COMP_CWORD]}
     COMPREPLY=( $(compgen -W "help install list use" -- $cur) )
 
     if [[ $COMP_CWORD -eq 2 ]] ; then
         case ${COMP_WORDS[1]} in
             use|uninstall)
-                local versions=`ls $HOME/.erlenv/versions`
+                local versions=`ls $HOME/.erlch/versions`
                 COMPREPLY=( $(compgen -W "$versions" -- $cur) )
                 ;;
             rm-cache)
-                local versions=`ls $HOME/.erlenv/cache`
+                local versions=`ls $HOME/.erlch/cache`
                 COMPREPLY=( $(compgen -W "$versions" -- $cur) )
                 ;;
             install|download)
-                if [[ -f "$HOME/.erlenv/.version_list" ]] ; then
-                    local versions=`ls $HOME/.erlenv/.version_list`
+                if [[ -f "$HOME/.erlch/.version_list" ]] ; then
+                    local versions=`ls $HOME/.erlch/.version_list`
                     COMPREPLY=( $(compgen -W "$versions" -- $cur) )
                 fi
                 ;;
@@ -27,4 +27,4 @@ _erlenv() {
     fi
 }
 
-complete -F _erlenv erlenv
+complete -F _erlch erlch
