@@ -104,6 +104,11 @@ function erlch() {
         local install_dir=$versions_dir/$version
         local untar_dir=/tmp/erlch-cache
 
+        if [[ $version_name = "" ]] ; then
+            usage
+            exit 1
+        fi
+
         # if not exists cache, download source
         if [[ ! -f $cache_dir/$filename ]] ; then
             echo -e "${blu}Start download source because not find cache file${de}"
