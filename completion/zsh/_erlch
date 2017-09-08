@@ -7,20 +7,15 @@ _erlch() {
             'help[display how to use command.]' \
             'list[lists your erl versions.]' \
             'install[install erlang.]' \
-            'download[download erlang source to cache.]' \
             'fetch[caches erlang versions for completions.]' \
             'uninstall[uninstall your installed erlang.]' \
-            'rm-cache[delete erlang source cache.]' \
             'use[switches the version of your installed erlang.]'
     else
         case $words[CURRENT-1] in
             use|uninstall)
                 _values "installed your erlang versions" `ls $HOME/.erlch/versions`
                 ;;
-            rm-cache)
-                _values "delete cache your erlang source" `ls $HOME/.erlch/cache`
-                ;;
-            install|download)
+            install)
                 if [[ -f "$HOME/.erlch/.version_list" ]] ; then
                     _values "available versions" `cat $HOME/.erlch/.version_list`
                 fi

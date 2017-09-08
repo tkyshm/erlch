@@ -10,11 +10,7 @@ _erlch() {
                 local versions=`ls $HOME/.erlch/versions`
                 COMPREPLY=( $(compgen -W "$versions" -- $cur) )
                 ;;
-            rm-cache)
-                local versions=`ls $HOME/.erlch/cache`
-                COMPREPLY=( $(compgen -W "$versions" -- $cur) )
-                ;;
-            install|download)
+            install)
                 if [[ -f "$HOME/.erlch/.version_list" ]] ; then
                     local versions=`ls $HOME/.erlch/.version_list`
                     COMPREPLY=( $(compgen -W "$versions" -- $cur) )

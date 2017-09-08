@@ -1,13 +1,14 @@
 #!/bin/bash
-set -e
+set -eu
 
 WITH_ERL_DOCS=y # default is yes
 
 erlch_path=$HOME/.erlch
-#erlang_url="http://erlang.org/download"
 erlang_url="https://github.com/erlang/otp/archive/"
+erlang_repo="https://github.com/erlang/otp"
 versions_dir="$erlch_path/versions"
 cache_dir="$erlch_path/cache"
+repo_dir="$erlch_path/repo"
 versions_list=$erlch_path/.version_list
 erlch_bin=$erlch_path/bin
 
@@ -24,6 +25,10 @@ function __convert_number_version(){
     sed 's/OTP[-_]//' <<< ${1}
 }
 
+function __prepare_repo_dir () {
+    git clone $erlang_repo $repo_dir/otp
+}
+
 function erlch() {
     declare -a modes
     local modes=($@)
@@ -35,9 +40,7 @@ function erlch() {
         echo "         use: switches your erlang version."
         echo "       fetch: caches erlang versions for completions."
         echo "        list: lists your erlang versions."
-        echo "    download: download erlang source and cache."
         echo "     install: install erlang."
-        echo "    rm-cache: delete cache."
         echo "   uninstall: uninstall your installed erlang."
         echo ""
     }
@@ -70,18 +73,6 @@ function erlch() {
                 echo -e " '$HOME/.erlch/configure_opts'."
                 echo ""
                 ;;
-            download)
-                echo -e "Usage: erlch download <version>"
-                echo ""
-                echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
-                echo ""
-                ;;
-            rm-cache)
-                echo -e "Usage: erlch rm-cache <version>"
-                echo ""
-                echo -e " <version> is the version of erlang (e.g. OTP_19.2)."
-                echo ""
-                ;;
             *)
                 usage
                 ;;
@@ -89,7 +80,7 @@ function erlch() {
     }
 
     fetch() {
-        local list=`git ls-remote -t https://github.com/erlang/otp | awk -F/ '{ print $NF }' | grep -v '{}' | grep OTP`
+        local list=`git ls-remote -t $erlang_repo | awk -F/ '{ print $NF }' | grep -v '{}' | grep OTP`
         mkdir -p $erlch_path
         echo "$list"
         echo "$list" > $versions_list
@@ -102,17 +93,15 @@ function erlch() {
         local filename=${version_name}.tar.gz
         local configure_opts=${@:2}
         local install_dir=$versions_dir/$version
-        local untar_dir=/tmp/erlch-cache
 
         if [[ $version_name = "" ]] ; then
             usage
             exit 1
         fi
 
-        # if not exists cache, download source
-        if [[ ! -f $cache_dir/$filename ]] ; then
-            echo -e "${blu}Start download source because not find cache file${de}"
-            download ${1}
+        if [[ ! -e $repo_dir/otp ]] ; then
+            mkdir -p $repo_dir
+            __prepare_repo_dir
         fi
 
         # setting configure options
@@ -128,12 +117,12 @@ function erlch() {
         echo "configure options: $configure_opts"
 
         # build
-        cd $cache_dir
-        echo -e "untar from cache ($cache_dir/$filename)"
-        mkdir -p $untar_dir
-        tar zxf ${filename} -C $untar_dir
+        cd $repo_dir/otp
 
-        cd $untar_dir/$(ls $untar_dir)
+        echo -e "checkout erlang/otp: $version_name"
+        git fetch
+        git checkout $version_name
+
         ./otp_build autoconf
         ./configure --prefix ${install_dir} ${configure_opts}
         make -j$(getconf _NPROCESSORS_ONLN)
@@ -145,49 +134,6 @@ function erlch() {
             make install-docs
         fi
         cd -
-        rm -rf $untar_dir
-    }
-
-    download() {
-        mkdir -p $cache_dir
-        local version_name=$1
-        local version=$(__convert_number_version $1)
-        local filename=${version_name}.tar.gz
-        local download_url=$erlang_url/$filename
-        echo -e "${gre}Starts to download $download_url ($cache_dir/$filename)${de}"
-        if [[ $version != "" ]] ; then
-            if [[ -f "$cache_dir/$filename" ]] ; then
-                echo -e "Already cached ${version} at $cache_dir/$filename"
-            else
-                cd $cache_dir
-                if [[ ! -f "${filename}" ]] ; then
-                    curl -O -L $download_url
-                fi
-                echo -e "${gre}Finished downlowd ${version}.${de}"
-            fi
-        else
-            usage "install"
-        fi
-    }
-
-    rm-cache() {
-        if [[ $# -eq 1 ]] ; then
-            local target_cache=$cache_dir/$1
-            local target_cache_untar=$(sed 's/.tar.gz//' <<< $target_cache)
-
-            if [[ -f "$target_cache" ]] ; then
-                echo -e "${gre}Delete cache ${version}. ($target_cache)${de}"
-                rm -rf $target_cache
-            fi
-
-            if [[ -d "$target_cache_untar" ]] ; then
-                echo -e "${gre}Delete cache ${version}. ($target_cache)${de}"
-                rm -rf $target_cache
-            fi
-        else
-            help "rm-cache"
-            return
-        fi
     }
 
     uninstall() {
