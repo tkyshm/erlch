@@ -32,6 +32,7 @@ Please check `erlch help` command.
 --enable-threads
 --enable-vm-probes
 --disable-sctp
+--with-dynamic-trace=dtrace
 --with-wx
 --without-javac
 --without-odbc
